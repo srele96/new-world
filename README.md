@@ -1,6 +1,6 @@
 # New World
 
-...
+A project that marks a new era, a new world, if you like to call it that.
 
 ## Documentation
 
@@ -12,6 +12,12 @@ clang-format
 cmake
 g++
 node
+```
+
+### Developer dependencies
+
+```bash
+sudo dnf install cmake-format clang-tools-extra
 ```
 
 ### Commands
@@ -35,7 +41,7 @@ Fedora:
 We have to install `SDL2-devel` dependency because it provides proper cmake configuration which allows cmake to find and link it.
 
 ```bash
-sudo dnf install SDL2 SDL2-devel mesa-libGL mesa-libGL-devel glfw glfw-devel
+sudo dnf install SDL2 SDL2-devel mesa-libGL mesa-libGL-devel
 ```
 
 First time:
