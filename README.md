@@ -41,7 +41,7 @@ Fedora:
 We have to install `SDL2-devel` dependency because it provides proper cmake configuration which allows cmake to find and link it.
 
 ```bash
-sudo dnf install SDL2 SDL2-devel mesa-libGL mesa-libGL-devel
+sudo dnf install SDL2 SDL2-devel mesa-libGL mesa-libGL-devel libcurl libcurl-devel
 ```
 
 First time:
