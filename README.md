@@ -2,7 +2,11 @@
 
 A project that marks a new era, a new world, if you like to call it that.
 
+A new era, a new world, where i free of my past limitations.
+
 ## Documentation
+
+A section containing the project documentation.
 
 ### Requirements
 
@@ -19,6 +23,18 @@ node
 ```bash
 sudo dnf install cmake-format clang-tools-extra
 ```
+
+#### You will need Boost
+
+I installed boost doing it the recommended way. Clone, then build. I don't use Windows.
+
+Get boost as specified here: <https://www.boost.org/doc/user-guide/getting-started.html>
+
+I used default location: `/usr/local`.
+
+**You need to run `sudo ./b2 install` as root, because `/usr/local` is system directory. _Otherwise, `b2` won't show errors, but boost won't be installed either._**
+
+You can find more about boost, and its documentation, here: <https://www.boost.org/libraries/latest/libs/>
 
 ### Commands
 

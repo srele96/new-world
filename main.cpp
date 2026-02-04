@@ -10,17 +10,23 @@
 // Without the <> include, i get the warning, unused directly
 // I am not sure if this is the correct way to handle the import correctly
 #include <boost/json.hpp>
+#include <boost/json/error.hpp>
 #include <chrono>
 #include <curl/easy.h>
+#include <filesystem>
+#include <fstream>
 #include <future>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 
+// TODO: Do I want to add some encryption to my application?
+// Maybe i could use OpenSSL or some other library for encryption.
+
 static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
   // What now?
   // Supposedly, the std::cout is not safe inside the write callback?
-  std::cout << "Write callback" << std::endl;
+  // std::cout << "Write callback" << std::endl;
   auto *out = static_cast<std::string *>(userdata);
   const size_t total{size * nmemb};
   // Wrap in try/catch, may throw
@@ -104,10 +110,19 @@ int main() {
   bool running = true;
 
   std::future<std::string> fetchData;
+  std::string fetchDataResult;
 
   // --- Main loop ---
   while (running) {
-    // TODO: Add some sort of polling here, so we can hold the result data once retrieved...
+    if (fetchData.valid()) {
+      std::future_status status{fetchData.wait_for(std::chrono::seconds(0))};
+      if (status == std::future_status::ready) {
+        // Should i use std::move?
+        // How do i know if i should use std::move?
+        // It does not come intuitively to me.
+        fetchDataResult = fetchData.get();
+      }
+    }
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -120,7 +135,6 @@ int main() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    // --- UI ---
     ImGui::Begin("Hello");
 
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -153,6 +167,9 @@ int main() {
         curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
         // Useful for debugging
         // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        // Supposedly, the following line, dictates the type casted to, within
+        // the write callback. Perhaps worth taking a better look into how it
+        // works.
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         // Do i even need user agent?
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "my-app/1.0");
@@ -171,34 +188,42 @@ int main() {
     }
 
     if (ImGui::Button("Check result")) {
-      if (fetchData.wait_for(std::chrono::seconds(0)) ==
-          std::future_status::ready) {
-        std::cout << "The data is ready:\n";
-        const std::string res{fetchData.get()};
-        namespace json = boost::json;
-        json::value jv{json::parse(res)};
-        if (!jv.is_object()) {
-          std::cerr << "Invalid json object\n";
+      namespace json = boost::json;
+      json::value jv;
+      try {
+        jv = json::parse(fetchDataResult);
+      } catch (const std::runtime_error &error) {
+        std::cerr << error.what() << "\n";
+      }
+      if (jv.is_object()) {
+        std::cout << "\nPrinting json data:\n";
+
+        const std::filesystem::path pwd{std::filesystem::current_path()};
+        const std::filesystem::path filePath{pwd / "response.json"};
+
+        std::ofstream out{filePath};
+        if (out.is_open()) {
+          std::cout << "Writing to file: " << filePath << "\n";
+          out << fetchDataResult;
+          out.close();
         } else {
-          std::cout << "Printing json data:\n";
-
-          boost::json::object const& obj {jv.as_object()};
-
-          for(auto const& [key, value] : obj) {
-            std::cout << key << ", ";
-          }
+          std::cerr << "Unable to open file.\n";
         }
-      } else {
-        std::cout << "Data is not ready yet\n";
       }
     }
+
+    ImGui::BeginChild("ScrollRegion", ImVec2(0, 0), true,
+                      ImGuiWindowFlags_HorizontalScrollbar);
+
+    ImGui::TextUnformatted(fetchDataResult.c_str());
+    ImGui::EndChild();
 
     ImGui::Text("ImGui is working.");
     ImGui::Button("Button");
     ImGui::End();
 
-    // --- Render ---
     ImGui::Render();
+
     // --- Do i need this? ---
     glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -208,7 +233,6 @@ int main() {
     SDL_GL_SwapWindow(window);
   }
 
-  // --- Cleanup ---
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
